@@ -1,0 +1,64 @@
+name: Cyber News Auto Upload
+
+on:
+  schedule:
+    - cron: '0 */5 * * *'  # every 5 hours
+  workflow_dispatch: {}     # lets you trigger manually from the Actions tab too
+
+concurrency:
+  group: cyber-news-pipeline
+  cancel-in-progress: false  # let a running job finish rather than kill it mid-upload
+
+permissions:
+  contents: write  # needed so the workflow can commit posted.json back
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pipeline
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python daily_pipeline.py
+
+      - name: Commit updated posted.json
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posted.json
+          git diff --cached --quiet || git commit -m "Update posted stories list [skip ci]"
+          git push || echo "Nothing to push"
+
+      - name: Upload debug artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-run-output
+          path: |
+            daily_video.mp4
+            tts_audio.mp3
+            daily_news.json
+            daily_scripts.json
+          retention-days: 3

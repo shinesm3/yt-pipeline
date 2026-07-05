@@ -1,0 +1,37 @@
+name: Daily YouTube Upload
+
+on:
+  schedule:
+    # Runs every day at 06:00 UTC -- adjust to your preferred time
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}  # lets you also trigger it manually from the Actions tab
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install feedparser google-genai edge-tts google-auth-oauthlib google-api-python-client --break-system-packages
+
+      - name: Restore client_secret.json
+        run: echo "${{ secrets.YT_CLIENT_SECRET_B64 }}" | base64 -d > client_secret.json
+
+      - name: Restore token.pickle
+        run: echo "${{ secrets.YT_TOKEN_PICKLE_B64 }}" | base64 -d > token.pickle
+
+      - name: Run daily pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python daily_pipeline.py

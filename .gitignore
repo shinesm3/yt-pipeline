@@ -1,0 +1,14 @@
+client_secret.json
+token.pickle
+daily_news.json
+daily_scripts.json
+daily_video.mp4
+tts_audio.mp3
+__pycache__/
+*.pyc
+client_secret.json 
+token.pickle 
+client_secret.json 
+token.pickle 
+*.json 
+*.pickle 
