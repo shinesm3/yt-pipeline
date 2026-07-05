@@ -74,7 +74,7 @@ def mark_posted(link, title, path=POSTED_FILE):
         json.dump(data, f, indent=2)
 
 
-def fetch_latest(max_age_hours=8, max_items_per_feed=8, posted_links=None, posted_titles=None):
+def fetch_latest(max_age_hours=24, max_items_per_feed=15, posted_links=None, posted_titles=None):
     """Fetch recent, not-yet-posted headlines across all feeds."""
     cutoff = datetime.now() - timedelta(hours=max_age_hours)
     posted_links = posted_links or set()
